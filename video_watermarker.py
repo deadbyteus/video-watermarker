@@ -1,18 +1,19 @@
+# Standard library imports
 import os
-import sys
 import argparse
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any
 from datetime import datetime
 import logging
-from PIL import Image, ImageDraw, ImageFont
-import numpy as np
 
-# Import core moviepy modules directly
-import moviepy.config as conf
-import moviepy.tools as tools
-from moviepy.video.io.VideoFileClip import VideoFileClip
-from moviepy.video.VideoClip import ImageClip
-from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+# Third-party imports
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+from moviepy.editor import VideoFileClip  # type: ignore
+from moviepy.video.VideoClip import ImageClip  # type: ignore
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip  # type: ignore
+
+# Type aliases
+VideoClip = Any  # For moviepy types that lack proper typing
 
 def clean_path(path: str) -> str:
     """Clean path string by removing newlines and extra whitespace."""

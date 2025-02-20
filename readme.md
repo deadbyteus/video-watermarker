@@ -56,9 +56,9 @@ python video_watermarker.py \
 ## Requirements
 
 - Python 3.6+
-- moviepy
-- Pillow
-- numpy
+- moviepy>=1.0.3
+- Pillow>=9.0.0
+- numpy>=1.21.0
 
 ## Example Output Structure
 
