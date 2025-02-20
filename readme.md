@@ -53,12 +53,24 @@ python video_watermarker.py \
     --transparency 0.3
 ```
 
-## Requirements
+## System Requirements
 
 - Python 3.6+
-- moviepy>=1.0.3
-- Pillow>=9.0.0
-- numpy>=1.21.0
+- Supported Operating Systems:
+  - Windows 10/11
+  - Linux (Ubuntu, Debian, etc.)
+  - macOS
+- Required packages:
+  - moviepy>=1.0.3
+  - Pillow>=9.0.0
+  - numpy>=1.21.0
+
+### Additional Requirements
+
+- FFmpeg (required by moviepy)
+  - Windows: Automatically downloaded by moviepy
+  - Linux: `sudo apt-get install ffmpeg`
+  - macOS: `brew install ffmpeg`
 
 ## Example Output Structure
 

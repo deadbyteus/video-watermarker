@@ -59,7 +59,7 @@ class VideoWatermarker:
                 watermark = Image.new('RGBA', (150, 50), (255, 255, 255, 0))
                 draw = ImageDraw.Draw(watermark)
                 try:
-                    font = ImageFont.truetype("arial.ttf", 24)
+                    font = self._get_default_font(24)
                 except OSError:
                     font = ImageFont.load_default()
                 draw.text((10, 10), 'unstabledb', font=font, fill=(255, 255, 255, 128))
@@ -70,6 +70,29 @@ class VideoWatermarker:
         except Exception as e:
             logging.error(f"Error creating watermark: {e}")
             return None
+            
+    def _get_default_font(self, size: int = 24) -> ImageFont.FreeTypeFont:
+        """Get a default font that works across different operating systems."""
+        try:
+            # Try common system fonts based on OS
+            if os.name == 'nt':  # Windows
+                font_path = "arial.ttf"
+            elif os.name == 'posix':  # Linux/Mac
+                font_paths = [
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+                    "/System/Library/Fonts/Helvetica.ttc",  # MacOS
+                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"  # Some Linux
+                ]
+                font_path = next((path for path in font_paths if os.path.exists(path)), None)
+            else:
+                font_path = None
+
+            if font_path and os.path.exists(font_path):
+                return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            logging.warning(f"Could not load system font: {e}")
+        
+        return ImageFont.load_default()
             
     def calculate_position(self, video_size: Tuple[int, int], watermark_size: Tuple[int, int],
                          position: str = 'top-right', padding: int = 10) -> Tuple[int, int]:
