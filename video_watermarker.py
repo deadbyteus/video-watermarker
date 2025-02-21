@@ -62,7 +62,7 @@ class VideoWatermarker:
                     font = self._get_default_font(24)
                 except OSError:
                     font = ImageFont.load_default()
-                draw.text((10, 10), 'unstabledb', font=font, fill=(255, 255, 255, 128))
+                draw.text((10, 10), 'your-logo', font=font, fill=(255, 255, 255, 128))
                 
             # Convert to numpy array for MoviePy
             return np.array(watermark)
