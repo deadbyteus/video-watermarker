@@ -15,7 +15,7 @@ A Python tool for bulk watermarking videos with either custom logos or text wate
 
 1. Clone the repository:
 ```
-git clone https://github.com/yourusername/video-watermarker.git
+git clone https://github.com/deadbyteus/video-watermarker.git
 cd video-watermarker
 ```
 
