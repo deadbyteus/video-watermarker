@@ -8,9 +8,7 @@ import logging
 # Third-party imports
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from moviepy.editor import VideoFileClip  # type: ignore
-from moviepy.video.VideoClip import ImageClip  # type: ignore
-from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip  # type: ignore
+from moviepy import VideoFileClip, ImageClip, CompositeVideoClip  # type: ignore
 
 # Type aliases
 VideoClip = Any  # For moviepy types that lack proper typing

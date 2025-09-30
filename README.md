@@ -24,6 +24,8 @@ cd video-watermarker
 pip install moviepy Pillow numpy
 ```
 
+**Note:** This project requires MoviePy 2.2.0 or later due to import structure changes.
+
 ## Usage
 
 ### Basic Usage
@@ -61,7 +63,7 @@ python video_watermarker.py \
   - Linux (Ubuntu, Debian, etc.)
   - macOS
 - Required packages:
-  - moviepy>=1.0.3
+  - moviepy>=2.2.0
   - Pillow>=9.0.0
   - numpy>=1.21.0
 

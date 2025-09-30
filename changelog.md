@@ -2,6 +2,21 @@
 
 All notable changes to the video watermarker script will be documented in this file.
 
+## [0.1.1] - 2025-09-30
+
+### Fixed
+
+- **MoviePy Compatibility**: Updated imports to support MoviePy 2.2.0+ 
+  - Changed from `moviepy.editor` imports to direct `moviepy` imports
+  - Resolves "No module named 'moviepy.editor'" error with newer MoviePy versions
+- **Documentation**: Updated README to reflect MoviePy version requirement (>=2.2.0)
+
+### Technical Changes
+
+- Consolidated three separate import statements into single import from `moviepy`
+- Maintains backward compatibility with core functionality
+- No breaking changes to command-line interface or functionality
+
 ## [0.1.0] - 2025-01-18
 
 ### Added
