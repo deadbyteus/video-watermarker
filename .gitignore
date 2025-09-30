@@ -39,4 +39,5 @@ ENV/
 # Project specific
 watermark.png
 output/
-watermarked/ 
+watermarked/
+WARP.md 
