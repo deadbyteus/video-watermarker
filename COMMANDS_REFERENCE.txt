@@ -3,19 +3,18 @@
 ## Main Watermarking Commands
 
 # Rough output directory
-python video_watermarker.py --input-dir A:\ComfyUI\output\rough --output-dir A:\ComfyUI\output\rough\wm --logo-path "F:\Projects\watermark-script\watermark.png" --position "top-right" --scale 0.15 --transparency 150
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
 
 # Video output directory
-python video_watermarker.py --input-dir A:\ComfyUI\output\video --output-dir A:\ComfyUI\output\video\wm --logo-path "F:\Projects\watermark-script\watermark.png" --position "top-right" --scale 0.15 --transparency 150
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
 
 # Temp video directory
-python video_watermarker.py --input-dir A:\ComfyUI_windows_portable\ComfyUI\output\video\temp --output-dir A:\ComfyUI_windows_portable\ComfyUI\output\video\wm --logo-path "F:\Projects\watermark-script\watermark.png" --position "top-right" --scale 0.15 --transparency 150
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
 
 # Alternative logo path
-python video_watermarker.py --input-dir A:\ComfyUI\output\rough --output-dir A:\ComfyUI\output\rough\wm --logo-path F:\Projects\video-watermarker\your-logo.png --position "top-right" --scale 0.15 --transparency 150
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
 
 ## Parameters
 # --position: "top-right", "top-left", "bottom-right", "bottom-left", "center"
 # --scale: 0.1 to 1.0 (size of watermark relative to video)
 # --transparency: 0 (fully transparent) to 255 (fully opaque)
-
