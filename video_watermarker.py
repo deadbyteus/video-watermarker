@@ -137,24 +137,43 @@ class VideoWatermarker:
             # Get position
             pos = self.calculate_position(video.size, (new_width, new_height), position)
             
+            # Normalize transparency: support 0-1 (where 1=fully transparent) or 0-255
+            # For 0-255: HIGHER = more transparent (weaker). 255=invisible, 0=solid.
+            if transparency > 1:
+                opacity = max(0, min(1, 1 - (transparency / 255)))
+            else:
+                opacity = max(0, min(1, 1 - transparency))
+            if opacity < 0.05:
+                logging.warning(
+                    f"Watermark opacity is very low ({opacity:.1%}). "
+                    f"With 0-255 scale, use a SMALL number for a visible logo (e.g. 0-80); "
+                    f"250 means almost fully transparent."
+                )
+            
             # Create clip from resized watermark with position and settings
+            # CRITICAL: Match video FPS to avoid blur/shake from frame rate mismatch
             watermark_clip = (ImageClip(watermark_array, transparent=True)
-                            .with_position(pos)
                             .with_duration(video.duration)
-                            .with_opacity(1 - transparency))
+                            .with_fps(video.fps)
+                            .with_position(pos)
+                            .with_opacity(opacity))
             
-            logging.info(f"Created watermark clip with size: {watermark_clip.size} at position {pos}")
+            logging.info(
+                f"Created watermark clip with size: {watermark_clip.size} at position {pos}, "
+                f"opacity={opacity:.1%}"
+            )
             
-            # Compose final video
-            final_video = CompositeVideoClip([video, watermark_clip])
+            # Compose final video - set explicit FPS to avoid timing/quality issues
+            final_video = CompositeVideoClip([video, watermark_clip]).with_fps(video.fps)
             
             logging.info(f"Writing output file: {output_path}")
             
-            # Write output
+            # Write output - use CRF for quality, preset for encoding stability
             final_video.write_videofile(
                 output_path,
                 codec='libx264',
                 audio_codec='aac',
+                ffmpeg_params=['-crf', '18', '-preset', 'medium'],
                 threads=4,
                 logger=None  # Disable MoviePy's built-in logger
             )
@@ -198,7 +217,9 @@ def main():
                       choices=['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
                       help='Watermark position')
     parser.add_argument('--transparency', type=float, default=0.5,
-                      help='Watermark transparency (0-1, where 1 is fully transparent)')
+                      help='How transparent the watermark is (weaker = higher number). '
+                           '0-1: 0=solid, 1=invisible. '
+                           '0-255: 0=solid, 255=invisible (e.g. 200≈22%% visible, 250≈2%% visible).')
     
     args = parser.parse_args()
     
