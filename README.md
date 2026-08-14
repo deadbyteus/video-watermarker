@@ -21,7 +21,7 @@ cd video-watermarker
 
 2. Install required dependencies:
 ```
-pip install moviepy Pillow numpy
+pip install -r requirements.txt
 ```
 
 **Note:** This project requires MoviePy 2.2.0 or later due to import structure changes.

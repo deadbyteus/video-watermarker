@@ -18,7 +18,7 @@ def clean_path(path: str) -> str:
     return path.strip().replace('\n', '').replace('\r', '')
 
 class VideoWatermarker:
-    def __init__(self, input_dir: str, output_dir: str, logo_path: str = None):
+    def __init__(self, input_dir: str, output_dir: str, logo_path: Optional[str] = None):
         """Initialize the video watermarker with directory paths and settings."""
         self.input_dir = clean_path(input_dir)
         self.output_dir = self._create_output_dir(clean_path(output_dir))
@@ -67,7 +67,7 @@ class VideoWatermarker:
             
         except Exception as e:
             logging.error(f"Error creating watermark: {e}")
-            return None
+            raise RuntimeError(f"Failed to create watermark: {e}") from e
             
     def _get_default_font(self, size: int = 24) -> ImageFont.FreeTypeFont:
         """Get a default font that works across different operating systems."""
@@ -113,6 +113,10 @@ class VideoWatermarker:
         video_path = os.path.join(self.input_dir, filename)
         output_path = os.path.join(self.output_dir, filename)
         
+        if os.path.abspath(output_path) == os.path.abspath(video_path):
+            logging.error(f"Skipping {filename}: output path equals input path")
+            return None
+        
         try:
             logging.info(f"Starting to process {filename}")
             
@@ -120,13 +124,17 @@ class VideoWatermarker:
             video = VideoFileClip(video_path)
             logging.info(f"Loaded video: {video.size}")
             
+            fps = video.fps or 24
+            if not video.fps:
+                logging.warning(f"Could not detect FPS for {filename}, defaulting to {fps}")
+            
             # Load the watermark and convert to array at the start
             watermark_array = np.array(self.watermark_img).astype('uint8')
             watermark_pil = Image.fromarray(watermark_array)
             
             # Calculate new size
-            new_width = int(video.w * scale)
-            new_height = int(new_width * watermark_pil.height / watermark_pil.width)
+            new_width = max(1, int(video.w * scale))
+            new_height = max(1, int(new_width * watermark_pil.height / watermark_pil.width))
             
             # Resize watermark image
             watermark_pil = watermark_pil.resize((new_width, new_height), Image.LANCZOS)
@@ -154,7 +162,7 @@ class VideoWatermarker:
             # CRITICAL: Match video FPS to avoid blur/shake from frame rate mismatch
             watermark_clip = (ImageClip(watermark_array, transparent=True)
                             .with_duration(video.duration)
-                            .with_fps(video.fps)
+                            .with_fps(fps)
                             .with_position(pos)
                             .with_opacity(opacity))
             
@@ -164,7 +172,7 @@ class VideoWatermarker:
             )
             
             # Compose final video - set explicit FPS to avoid timing/quality issues
-            final_video = CompositeVideoClip([video, watermark_clip]).with_fps(video.fps)
+            final_video = CompositeVideoClip([video, watermark_clip]).with_fps(fps)
             
             logging.info(f"Writing output file: {output_path}")
             
@@ -207,6 +215,18 @@ class VideoWatermarker:
                     
         return successful, failed
 
+def transparency_value(value: str) -> float:
+    """Validate transparency argument: 0-1 or 0-255 scale."""
+    try:
+        parsed = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid float value: {value!r}")
+    if parsed < 0 or parsed > 255:
+        raise argparse.ArgumentTypeError(
+            f"transparency must be between 0 and 1 (unit scale) or 0 and 255, got {parsed}"
+        )
+    return parsed
+
 def main():
     parser = argparse.ArgumentParser(description='Bulk Video Watermarking Tool')
     parser.add_argument('--input-dir', required=True, help='Input directory containing videos')
@@ -216,7 +236,7 @@ def main():
     parser.add_argument('--position', default='top-right',
                       choices=['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
                       help='Watermark position')
-    parser.add_argument('--transparency', type=float, default=0.5,
+    parser.add_argument('--transparency', type=transparency_value, default=0.5,
                       help='How transparent the watermark is (weaker = higher number). '
                            '0-1: 0=solid, 1=invisible. '
                            '0-255: 0=solid, 255=invisible (e.g. 200≈22%% visible, 250≈2%% visible).')

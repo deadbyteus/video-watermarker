@@ -2,19 +2,18 @@
 
 ## Main Watermarking Commands
 
-# Rough output directory
+# Logo watermark
 python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
 
-# Video output directory
-python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
+# Text watermark (no logo)
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --position "bottom-right" --scale 0.15 --transparency 0.5
 
-# Temp video directory
-python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
-
-# Alternative logo path
-python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "top-right" --scale 0.15 --transparency 150
+# Centered, larger, more visible logo
+python video_watermarker.py --input-dir {INPUT_DIR} --output-dir {OUTPUT_DIR} --logo-path "{LOGO_PATH}" --position "center" --scale 0.25 --transparency 50
 
 ## Parameters
 # --position: "top-right", "top-left", "bottom-right", "bottom-left", "center"
 # --scale: 0.1 to 1.0 (size of watermark relative to video)
-# --transparency: 0 (fully transparent) to 255 (fully opaque)
+# --transparency: how transparent the watermark is (higher = more transparent)
+#   0-1 scale: 0 = solid, 1 = invisible
+#   0-255 scale: 0 = solid, 255 = invisible (e.g. 150 is about 40% visible)
