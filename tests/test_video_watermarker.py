@@ -5,7 +5,8 @@ import numpy as np
 import pytest
 from PIL import Image, ImageFont
 
-from video_watermarker import VideoWatermarker, clean_path, main
+from utils import calculate_position, clean_path, get_default_font
+from video_watermarker import VideoWatermarker, main
 
 
 @pytest.fixture
@@ -79,31 +80,31 @@ class TestCreateWatermark:
         # Text pixels drawn onto the fully transparent canvas
         assert watermarker.watermark_img[:, :, 3].max() > 0
 
-    def test_returns_none_on_invalid_logo(self, dirs):
+    def test_raises_on_invalid_logo(self, dirs):
         input_dir, output_dir = dirs
-        wm = VideoWatermarker(input_dir, output_dir, "/nonexistent/logo.png")
-        assert wm.watermark_img is None
+        with pytest.raises(ValueError, match="Could not load watermark image"):
+            VideoWatermarker(input_dir, output_dir, "/nonexistent/logo.png")
 
 
 class TestGetDefaultFont:
-    def test_returns_usable_font(self, watermarker):
-        font = watermarker._get_default_font(24)
+    def test_returns_usable_font(self):
+        font = get_default_font(24)
         assert isinstance(font, (ImageFont.FreeTypeFont, ImageFont.ImageFont))
 
-    def test_falls_back_when_no_font_found(self, watermarker):
+    def test_falls_back_when_no_font_found(self):
         real_exists = os.path.exists
         with patch(
-            "video_watermarker.os.path.exists",
+            "utils.os.path.exists",
             side_effect=lambda p: False if str(p).endswith((".ttf", ".ttc")) else real_exists(p),
-        ), patch("video_watermarker.ImageFont.load_default") as load_default:
-            font = watermarker._get_default_font(24)
+        ), patch("utils.ImageFont.load_default") as load_default:
+            font = get_default_font(24)
         assert font is load_default.return_value
 
-    def test_falls_back_on_error(self, watermarker):
+    def test_falls_back_on_error(self):
         with patch(
-            "video_watermarker.ImageFont.truetype", side_effect=OSError("boom")
-        ), patch("video_watermarker.ImageFont.load_default") as load_default:
-            font = watermarker._get_default_font(24)
+            "utils.ImageFont.truetype", side_effect=OSError("boom")
+        ), patch("utils.ImageFont.load_default") as load_default:
+            font = get_default_font(24)
         assert font is load_default.return_value
 
 
@@ -111,26 +112,26 @@ class TestCalculatePosition:
     VIDEO = (1920, 1080)
     MARK = (200, 100)
 
-    def test_top_left(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "top-left") == (10, 10)
+    def test_top_left(self):
+        assert calculate_position(self.VIDEO, self.MARK, "top-left") == (10, 10)
 
-    def test_top_right(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "top-right") == (1710, 10)
+    def test_top_right(self):
+        assert calculate_position(self.VIDEO, self.MARK, "top-right") == (1710, 10)
 
-    def test_bottom_left(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "bottom-left") == (10, 970)
+    def test_bottom_left(self):
+        assert calculate_position(self.VIDEO, self.MARK, "bottom-left") == (10, 970)
 
-    def test_bottom_right(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "bottom-right") == (1710, 970)
+    def test_bottom_right(self):
+        assert calculate_position(self.VIDEO, self.MARK, "bottom-right") == (1710, 970)
 
-    def test_center(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "center") == (860, 490)
+    def test_center(self):
+        assert calculate_position(self.VIDEO, self.MARK, "center") == (860, 490)
 
-    def test_unknown_position_defaults_to_top_right(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "bogus") == (1710, 10)
+    def test_unknown_position_defaults_to_top_right(self):
+        assert calculate_position(self.VIDEO, self.MARK, "bogus") == (1710, 10)
 
-    def test_custom_padding(self, watermarker):
-        assert watermarker.calculate_position(self.VIDEO, self.MARK, "top-left", padding=25) == (25, 25)
+    def test_custom_padding(self):
+        assert calculate_position(self.VIDEO, self.MARK, "top-left", padding=25) == (25, 25)
 
 
 def _mock_video(width=1920, height=1080, fps=30, duration=10.0):
