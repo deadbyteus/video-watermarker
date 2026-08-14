@@ -64,8 +64,8 @@ python video_watermarker.py \
   - macOS
 - Required packages:
   - moviepy>=2.2.0
-  - Pillow>=9.0.0
-  - numpy>=1.21.0
+  - Pillow>=10.3.0 (versions below 10.3.0 contain known security vulnerabilities, e.g. CVE-2024-28219)
+  - numpy>=1.22.0
 
 ### Additional Requirements
 

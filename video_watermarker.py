@@ -1,5 +1,6 @@
 # Standard library imports
 import os
+import sys
 import argparse
 from typing import Tuple, Optional, Any
 from datetime import datetime
@@ -7,21 +8,28 @@ import logging
 
 # Third-party imports
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from moviepy import VideoFileClip, ImageClip, CompositeVideoClip  # type: ignore
+
+# Local imports
+from utils import (
+    SUPPORTED_FORMATS,
+    calculate_position,
+    clean_path,
+    get_default_font,
+    normalize_transparency,
+)
 
 # Type aliases
 VideoClip = Any  # For moviepy types that lack proper typing
-
-def clean_path(path: str) -> str:
-    """Clean path string by removing newlines and extra whitespace."""
-    return path.strip().replace('\n', '').replace('\r', '')
 
 class VideoWatermarker:
     def __init__(self, input_dir: str, output_dir: str, logo_path: Optional[str] = None):
         """Initialize the video watermarker with directory paths and settings."""
         self.input_dir = clean_path(input_dir)
-        self.output_dir = self._create_output_dir(clean_path(output_dir))
+        if not os.path.isdir(self.input_dir):
+            raise NotADirectoryError(f"Input directory does not exist: {self.input_dir}")
+        self.output_dir = self._create_output_dir(clean_path(output_dir) if output_dir else '')
         self.logo_path = clean_path(logo_path) if logo_path else None
         self.setup_logging()
         self.watermark_img = self._create_watermark()
@@ -47,66 +55,23 @@ class VideoWatermarker:
         
     def _create_watermark(self) -> np.ndarray:
         """Create or load watermark image."""
-        try:
-            if self.logo_path:
+        if self.logo_path:
+            try:
                 watermark = Image.open(self.logo_path)
                 watermark = watermark.convert('RGBA')
-                logging.info(f"Watermark loaded: {watermark.size}")
-            else:
-                # Create text-based watermark
-                watermark = Image.new('RGBA', (150, 50), (255, 255, 255, 0))
-                draw = ImageDraw.Draw(watermark)
-                try:
-                    font = self._get_default_font(24)
-                except OSError:
-                    font = ImageFont.load_default()
-                draw.text((10, 10), 'your-logo', font=font, fill=(255, 255, 255, 128))
-                
-            # Convert to numpy array for MoviePy
-            return np.array(watermark)
-            
-        except Exception as e:
-            logging.error(f"Error creating watermark: {e}")
-            raise RuntimeError(f"Failed to create watermark: {e}") from e
-            
-    def _get_default_font(self, size: int = 24) -> ImageFont.FreeTypeFont:
-        """Get a default font that works across different operating systems."""
-        try:
-            # Try common system fonts based on OS
-            if os.name == 'nt':  # Windows
-                font_path = "arial.ttf"
-            elif os.name == 'posix':  # Linux/Mac
-                font_paths = [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
-                    "/System/Library/Fonts/Helvetica.ttc",  # MacOS
-                    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"  # Some Linux
-                ]
-                font_path = next((path for path in font_paths if os.path.exists(path)), None)
-            else:
-                font_path = None
+            except (OSError, ValueError) as e:
+                raise ValueError(f"Could not load watermark image '{self.logo_path}': {e}") from e
+            logging.info(f"Watermark loaded: {watermark.size}")
+        else:
+            # Create text-based watermark
+            watermark = Image.new('RGBA', (150, 50), (255, 255, 255, 0))
+            draw = ImageDraw.Draw(watermark)
+            font = get_default_font(24)
+            draw.text((10, 10), 'your-logo', font=font, fill=(255, 255, 255, 128))
 
-            if font_path and os.path.exists(font_path):
-                return ImageFont.truetype(font_path, size)
-        except Exception as e:
-            logging.warning(f"Could not load system font: {e}")
-        
-        return ImageFont.load_default()
+        # Convert to numpy array for MoviePy
+        return np.array(watermark)
             
-    def calculate_position(self, video_size: Tuple[int, int], watermark_size: Tuple[int, int],
-                         position: str = 'top-right', padding: int = 10) -> Tuple[int, int]:
-        """Calculate watermark position based on specified location."""
-        video_width, video_height = video_size
-        watermark_width, watermark_height = watermark_size
-        
-        positions = {
-            'top-left': (padding, padding),
-            'top-right': (video_width - watermark_width - padding, padding),
-            'bottom-left': (padding, video_height - watermark_height - padding),
-            'bottom-right': (video_width - watermark_width - padding, video_height - watermark_height - padding),
-            'center': ((video_width - watermark_width) // 2, (video_height - watermark_height) // 2)
-        }
-        return positions.get(position, positions['top-right'])
-        
     def process_video(self, filename: str, scale: float = 0.1, position: str = 'top-right',
                      transparency: float = 0.5) -> Optional[str]:
         """Process a single video with watermark."""
@@ -117,6 +82,9 @@ class VideoWatermarker:
             logging.error(f"Skipping {filename}: output path equals input path")
             return None
         
+        video = None
+        watermark_clip = None
+        final_video = None
         try:
             logging.info(f"Starting to process {filename}")
             
@@ -143,14 +111,9 @@ class VideoWatermarker:
             watermark_array = np.array(watermark_pil)
             
             # Get position
-            pos = self.calculate_position(video.size, (new_width, new_height), position)
+            pos = calculate_position(video.size, (new_width, new_height), position)
             
-            # Normalize transparency: support 0-1 (where 1=fully transparent) or 0-255
-            # For 0-255: HIGHER = more transparent (weaker). 255=invisible, 0=solid.
-            if transparency > 1:
-                opacity = max(0, min(1, 1 - (transparency / 255)))
-            else:
-                opacity = max(0, min(1, 1 - transparency))
+            opacity = normalize_transparency(transparency)
             if opacity < 0.05:
                 logging.warning(
                     f"Watermark opacity is very low ({opacity:.1%}). "
@@ -186,32 +149,40 @@ class VideoWatermarker:
                 logger=None  # Disable MoviePy's built-in logger
             )
             
-            # Clean up resources
-            video.close()
-            watermark_clip.close()
-            final_video.close()
-            
             logging.info(f"Successfully processed: {filename}")
             return output_path
             
-        except Exception as e:
-            logging.error(f"Error processing {filename}: {str(e)}")
+        except Exception:
+            logging.exception(f"Error processing {filename}")
             return None
+        finally:
+            # Clean up resources even if processing failed
+            for clip in (final_video, watermark_clip, video):
+                if clip is not None:
+                    try:
+                        clip.close()
+                    except Exception as e:
+                        logging.warning(f"Error closing clip for {filename}: {e}")
             
     def process_directory(self, scale: float = 0.1, position: str = 'top-right',
                          transparency: float = 0.5) -> Tuple[int, int]:
         """Process all compatible videos in the input directory."""
-        supported_formats = {'.mp4', '.avi', '.mov', '.mkv', '.webm'}
         successful = 0
         failed = 0
         
-        for filename in os.listdir(self.input_dir):
-            if os.path.splitext(filename)[1].lower() in supported_formats:
-                result = self.process_video(filename, scale, position, transparency)
-                if result:
-                    successful += 1
-                else:
-                    failed += 1
+        video_files = [
+            filename for filename in os.listdir(self.input_dir)
+            if os.path.splitext(filename)[1].lower() in SUPPORTED_FORMATS
+        ]
+        if not video_files:
+            logging.warning(f"No supported video files found in {self.input_dir}")
+            
+        for filename in video_files:
+            result = self.process_video(filename, scale, position, transparency)
+            if result:
+                successful += 1
+            else:
+                failed += 1
                     
         return successful, failed
 
@@ -243,10 +214,17 @@ def main():
     
     args = parser.parse_args()
     
-    watermarker = VideoWatermarker(args.input_dir, args.output_dir, args.logo_path)
+    try:
+        watermarker = VideoWatermarker(args.input_dir, args.output_dir, args.logo_path)
+    except (NotADirectoryError, ValueError, OSError) as e:
+        logging.error(str(e))
+        sys.exit(1)
+        
     successful, failed = watermarker.process_directory(args.scale, args.position, args.transparency)
     
     logging.info(f"Processing complete. Successful: {successful}, Failed: {failed}")
+    if failed:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
