@@ -14,8 +14,8 @@ All notable changes to the video watermarker script will be documented in this f
 ### Technical Changes
 
 - Consolidated three separate import statements into single import from `moviepy`
-- Maintains backward compatibility with core functionality
-- No breaking changes to command-line interface or functionality
+- Requires MoviePy 2.2.0+ (no longer compatible with MoviePy 1.x)
+- No breaking changes to command-line interface
 
 ## [0.1.0] - 2025-01-18
 
